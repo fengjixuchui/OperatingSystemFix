@@ -9,14 +9,14 @@ void Start_Kernel(void)
 	Pos.XResolution = 1440;//从左到右横向1440
 	Pos.YResolution = 900;//从上到下纵向900
 
-	Pos.XPosition = 0;
-	Pos.YPosition = 0;
+	Pos.XPosition = 0;//光标所在列
+	Pos.YPosition = 0;//光标所在行
 
 	Pos.XCharSize = 8;//从左到右横向8
 	Pos.YCharSize = 16;//从上到下纵向16
 
 	Pos.FB_addr = (int *)0xffff800000a00000;//帧缓冲区起始线性地址
-	Pos.FB_length = (Pos.XResolution * Pos.YResolution * 4);//每个像素点需要4字节的值
+	Pos.FB_length = (Pos.XResolution * Pos.YResolution * 4);//每个像素点需要4字节的值进行控制
 
 	for(i = 0 ;i<1440*20;i++)
 	{

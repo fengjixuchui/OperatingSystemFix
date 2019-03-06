@@ -40,8 +40,8 @@ struct position
 	int XResolution;//当前屏幕分辨率
 	int YResolution;
 
-	int XPosition;	//字符光标所在位置
-	int YPosition;
+	int XPosition;	//光标所在列
+	int YPosition;	//光标所在行
 
 	int XCharSize;	//字符像素矩阵尺寸
 	int YCharSize;

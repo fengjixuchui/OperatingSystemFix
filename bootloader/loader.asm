@@ -62,12 +62,12 @@ Label_Start:
 
 ;快速打开A20
 	push	ax
-	in	al,	92h
-	or	al,	00000010b
-	out	92h,	al
+	in	al,	92h			;将0x92端口内容读入al
+	or	al,	00000010b	;置位第1位(从0开始计)
+	out	92h,	al		;写回0x92端口开启快速A20
 	pop	ax
 
-	cli
+	cli					;关闭中断
 	lgdt	[GdtPtr]	
 
 	mov	eax,	cr0

@@ -1,7 +1,6 @@
-.section .text
+.section .text/*系统预定义段名*/
 
 .globl _start
-
 _start:
 	mov	$0x10,	%ax
 	mov	%ax,	%ds
@@ -9,7 +8,6 @@ _start:
 	mov	%ax,	%fs
 	mov	%ax,	%ss
 	mov	$0x7E00,	%esp
-
 //加载全局描述符表寄存器GDTR
 	lgdt	GDT_POINTER(%rip)
 
@@ -25,8 +23,8 @@ _start:
 
 	movq	$0x7E00,	%rsp
 
-//加载页目录基地址寄存器PDBR=>cr3
-	movq	$0x101000,	%rax
+//加载页目录基地址寄存器PDBR=>cr3由于引导加载程序将系统内核加载到物理地址1MB处,而页表PML4的起始地址位于内核程序1000h偏移处,那么页表PML4的物理起始地址应该是1MB + 1000h =101000h处
+	movq	$0x101000,	%rax			;页表PML4物理基地址0x101000
 	movq	%rax,		%cr3
 	movq	switch_seg(%rip),	%rax
 	pushq	$0x08
@@ -34,7 +32,6 @@ _start:
 	lretq
 
 //=======	64-bit mode code
-
 switch_seg:
 	.quad	entry64
 
@@ -44,7 +41,7 @@ entry64:
 	movq	%rax,	%es
 	movq	%rax,	%gs
 	movq	%rax,	%ss
-	movq	$0xffff800000007E00,	%rsp		/* rsp address */
+	movq	$0xffff800000007E00,	%rsp	/* rsp address */
 
 	movq	go_to_kernel(%rip),	%rax		/* movq address */
 	pushq	$0x08
@@ -60,23 +57,21 @@ go_to_kernel:
 .org	0x1000
 
 __PML4E:
-
-	.quad	0x102007
+	.quad	0x102007					;映射线性地址0
 	.fill	255,8,0
-	.quad	0x102007
+	.quad	0x102007					;映射线性地址0xffff 8000 0010 1000
 	.fill	255,8,0
 
 .org	0x2000
 
 __PDPTE:
-	
+
 	.quad	0x103003
 	.fill	511,8,0
 
 .org	0x3000
 
 __PDE:
-
 	.quad	0x000083	
 	.quad	0x200083
 	.quad	0x400083
@@ -85,16 +80,15 @@ __PDE:
 	.quad	0xe0000083		/*0x a00000*/
 	.quad	0xe0200083
 	.quad	0xe0400083
-	.quad	0xe0600083
-	.quad	0xe0800083		/*0x1000000*/
+	.quad	0xe0600083		/*0x1000000书上印到下一行了,勘误*/
+	.quad	0xe0800083
 	.quad	0xe0a00083
 	.quad	0xe0c00083
 	.quad	0xe0e00083
 	.fill	499,8,0
-
 //全局描述符表GDT
 
-.section .data
+.section .data/*系统预定义段名*/
 
 .globl GDT_Table
 
