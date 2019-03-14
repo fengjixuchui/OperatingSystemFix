@@ -1,7 +1,5 @@
-#include <stdarg.h>
 #include "printk.h"
 #include "lib.h"
-#include "linkage.h"
 
 //打印字符所需要的参数:帧缓存线性地址/行分辨率/列行像素点位置/颜色/背景/字符位图
 void putchar(unsigned int * fb, int Xsize, int x, int y, unsigned int FRcolor, unsigned int BKcolor, unsigned char font)
