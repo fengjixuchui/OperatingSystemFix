@@ -1,7 +1,5 @@
-#include <stdarg.h>
 #include "printk.h"
 #include "lib.h"
-#include "linkage.h"
 
 //打印字符所需要的参数:帧缓存线性地址/行分辨率/列行像素点位置/颜色/背景/字符位图
 void putchar(unsigned int * fb, int Xsize, int x, int y, unsigned int FRcolor, unsigned int BKcolor, unsigned char font)
@@ -293,12 +291,14 @@ int color_printk(unsigned int FRcolor,unsigned int BKcolor,const char * fmt,...)
 			Pos.XPosition--;//列数减去1
 			if(Pos.XPosition < 0)//列数小于0(本来就在第0列),则回退到上一行的最后一列
 			{
-				Pos.XPosition = (Pos.XResolution / Pos.XCharSize - 1) * Pos.XCharSize;//列数 = (从左到右横向1440 / 从左到右横向8 - 1) * 从左到右横向8 =>最后一列
+				//Pos.XPosition = (Pos.XResolution / Pos.XCharSize - 1) * Pos.XCharSize;//列数 = (从左到右横向1440 / 从左到右横向8 - 1) * 从左到右横向8 =>最后一列,错误,不能再乘上Pos.XCharSize,因为下面传递给putchar时将会乘上Pos.XCharSize
+				Pos.XPosition = Pos.XResolution / Pos.XCharSize - 1;//列数 = 从左到右横向1440 / 从左到右横向8 - 1 =>最后一列
 				Pos.YPosition--;//行数减去1
-				if(Pos.YPosition < 0)//特殊情况:如果会退完行数小于0(本来就在第0列且在第0行)
-					Pos.YPosition = (Pos.YResolution / Pos.YCharSize - 1) * Pos.YCharSize;//行数 = (从上到下纵向900 / 从上到下纵向16 - 1) *从上到下纵向9 =>最后一行
+				if(Pos.YPosition < 0)//特殊情况:如果回退完行数小于0(本来就在第0列且在第0行)
+					//Pos.YPosition = (Pos.YResolution / Pos.YCharSize - 1) * Pos.YCharSize;//行数 = (从上到下纵向900 / 从上到下纵向16 - 1) *从上到下纵向9 =>最后一行,错误,不能再乘上Pos.YCharSize,因为下面传递给putchar时将会乘上Pos.YCharSize
+					Pos.YPosition = Pos.YResolution / Pos.YCharSize - 1;//行数 = 从上到下纵向900 / 从上到下纵向16 - 1 =>最后一行
 			}	
-			putchar(Pos.FB_addr , Pos.XResolution , Pos.XPosition * Pos.XCharSize , Pos.YPosition * Pos.YCharSize , FRcolor , BKcolor , ' ');
+			putchar(Pos.FB_addr , Pos.XResolution , Pos.XPosition * Pos.XCharSize , Pos.YPosition * Pos.YCharSize , FRcolor , BKcolor , ' ');//因为这里在给putchar传递光标位置时是乘上了位图尺寸的,所以上面的不可以再乘
 		}
 		else if((unsigned char)*(buf + count) == '\t')//如果确定待显示字符是\t转义字符,则计算当前光标距下一个制表位需要填充的空格符数量,将计算结果保存到局部变量line中,再结合for循环和if判断,把显示位置调整到下一个制表位,并使用空格填补调整过程中占用的字符显示空间
 		{

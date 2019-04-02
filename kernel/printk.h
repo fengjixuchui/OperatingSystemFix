@@ -3,7 +3,6 @@
 
 #include <stdarg.h>
 #include "font.h"
-#include "linkage.h"
 
 //都是2的自然数次方,形成互不干扰的bit位域0101 0101
 #define ZEROPAD	1		//显示的字符前面填充0取代空格,对于所有的数字格式用前导零而不是空格填充字段宽度,如果出现-标志或者指定了精度(对于整数)则忽略该标志

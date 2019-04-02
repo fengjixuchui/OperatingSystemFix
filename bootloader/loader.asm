@@ -223,14 +223,14 @@ Label_Mov_Kernel:
 ;	add	bx,	[BPB_BytesPerSec]	
 	jmp	Label_Go_On_Loading_File
 
-Label_File_Loaded:
+Label_File_Loaded:							;0x101cd处断点可看到G字母显示在屏幕上
 	mov	ax, 0B800h
 	mov	gs, ax
 	mov	ah, 0Fh				; 0000: 黑底    1111: 白字
 	mov	al, 'G'
 	mov	[gs:((80 * 0 + 39) * 2)], ax	; 屏幕第 0 行, 第 39 列。
 
-KillMotor:
+KillMotor:									;关闭软驱马达
 	push	dx
 	mov	dx,	03F2h
 	mov	al,	0	
@@ -249,21 +249,21 @@ KillMotor:
 	mov	bp,	StartGetMemStructMessage
 	int	10h
 
-	mov	ebx,	0
+	mov	ebx,	0								;EBX=00h,此值为起始映射结构体,其他值为后续映射结构体
 	mov	ax,	0x00
 	mov	es,	ax
-	mov	di,	MemoryStructBufferAddr	
-
+	mov	di,	MemoryStructBufferAddr				;MemoryStructBufferAddr	equ	0x7E00,ES:DI应该指向保存返回结果的缓存区
+												;至此规划完保存地点
 Label_Get_Mem_Struct:
-	mov	eax,	0x0E820
-	mov	ecx,	20
-	mov	edx,	0x534D4150
-	int	15h
-	jc	Label_Get_Mem_Fail
-	add	di,	20
-	inc	dword	[MemStructNumber]
-
-	cmp	ebx,	0
+	mov	eax,	0x0E820							;INT 15h 功能EAX=E820h,获取物理地址空间信息
+	mov	ecx,	20								;ECX=预设返回结果的缓存区结构体长度,字节为单位,应大于等于20B
+	mov	edx,	0x534D4150						;EDX=字符串SMAP
+	int	15h										;调用返回值如果CF=0说明操作成功,EAX=字符串SMAP,ES:DI应该指向保存返回结果的缓存区
+	jc	Label_Get_Mem_Fail						;EBX=00h,此值表明检测结束,其他值为后续映射信息结构体序号,ECX=保存实际操作的缓存区结构体长度,以字节为单位
+	add	di,	20									;这个BIOS服务要执行多次,每次执行成功后,服务会返回一个非零值以表示后续映射信息结构体序号
+	inc	dword	[MemStructNumber]				;MemStructNumber		dd	0
+												;该服务可返回物理内存地址段/设备映射到主板的内存段地址(包括ISA/PCI设备内存地址段和所有BIOS的保留区域)以及地址空洞
+	cmp	ebx,	0								;结构体占20B,包含8B起始物理地址/8B空间长度/4B内存类型
 	jne	Label_Get_Mem_Struct
 	jmp	Label_Get_Mem_OK
 
@@ -304,19 +304,19 @@ Label_Get_Mem_OK:
 	pop	ax
 	mov	bp,	StartGetSVGAVBEInfoMessage
 	int	10h
-
-	mov	ax,	0x00
-	mov	es,	ax
+;
+	mov	ax,	0x00						;首先使用VBE的AL=00h号功能来获取控制器的VbeInfoBlock信息块结构并将其保存在由参数寄存器ES:DI指定的0x8000处P264
+	mov	es,	ax							;一旦此功能执行成功,则使用命令x /128hx 0x8000来查看VbeInfoBlock信息块的前256B内容
 	mov	di,	0x8000
 	mov	ax,	4F00h
 
 	int	10h
 
-	cmp	ax,	004Fh
+	cmp	ax,	004Fh						;测试是否调用成功且执行成功,对于VBE支持的功能,程序在执行功能调用前应向AH传入4F,如果成功该值将会作为返回状态保存在AL中,如果VBE功能执行成功,那么AH将返回0,否则记录失败类型
 
 	jz	.KO
 	
-;=======	Fail
+;=======	Fail单纯显示失败信息进入无限循环
 	mov	ax,	1301h
 	mov	bx,	008Ch
 	mov	dx,	0900h		;row 9
@@ -353,24 +353,24 @@ Label_Get_Mem_OK:
 	pop	ax
 	mov	bp,	StartGetSVGAModeInfoMessage
 	int	10h
-
+;
 	mov	ax,	0x00
 	mov	es,	ax
-	mov	si,	0x800e
+	mov	si,	0x800e								;VideoModeList指针在VbeInfoBlock信息块偏移14处的成员变量VideoModePtr内(偏移14处)
 
-	mov	esi,	dword	[es:si]
-	mov	edi,	0x8200
+	mov	esi,	dword	[es:si]					;esi=VideoModeList指针0x8022
+	mov	edi,	0x8200							;edi=0x8200
 
 Label_SVGA_Mode_Info_Get:
 
-	mov	cx,	word	[es:esi]
+	mov	cx,	word	[es:esi]					;cx=0x100=256(模式号列表第一项),刚才的赋值已经让es:esi成为指向VideoModeList的指针了,此处取出VideoModeList指针指向的内容(模式号)
 
-;显示SVGA模式信息
+;显示SVGA模式信息(支持的模式号支持的模式号支持的模式号)
 	push	ax
 
 	mov	ax,	00h
 	mov	al,	ch
-	call	Label_DispAL
+	call	Label_DispAL						;显示十六进制数字AL
 
 	mov	ax,	00h
 	mov	al,	cl	
@@ -382,16 +382,16 @@ Label_SVGA_Mode_Info_Get:
 	cmp	cx,	0FFFFh
 	jz	Label_SVGA_Mode_Info_Finish
 
-	mov	ax,	4F01h
-	int	10h
+	mov	ax,	4F01h							;获取到VbeInfoBlock信息块结构后再借助01号功能对VBE芯片支持的模式号进行逐一遍历P266,用于获取指定模式号的(自于VideoModeList列表)的VBE显示模式扩展信息
+	int	10h									;这些ModeInfoBlock结构保存在物理地址0x8200处的内存空间,每个ModeInfoBlock结构占用256B
 
-	cmp	ax,	004Fh
+	cmp	ax,	004Fh							;测试是否执行成功
 
 	jnz	Label_SVGA_Mode_Info_FAIL	
 
-	inc	dword		[SVGAModeCounter]
-	add	esi,	2
-	add	edi,	0x100
+	inc	dword		[SVGAModeCounter]		;SVGAModeCounter		dd	0
+	add	esi,	2							;一个模式号占用2B
+	add	edi,	0x100						;递增下一个ModeInfoBlock结构体的保存位置
 
 	jmp	Label_SVGA_Mode_Info_Get
 		
@@ -423,12 +423,12 @@ Label_SVGA_Mode_Info_Finish:
 	int	10h
 
 ;设置SVGA模式(VESA VBE)
-;	jmp $				;无限循环查看SVGA信息
-	mov	ax,	4F02h
-	mov	bx,	4180h	;mode : 0x180 or 0x143
+;	jmp $									;无限循环查看SVGA信息
+	mov	ax,	4F02h							;向AH传入4F,AL=02h功能设置VBE显示模式
+	mov	bx,	4180h							;mode : 0x180 or 0x143;此处设置为0x180模式,1440乘900,平坦帧缓存起始物理地址0xe000 0000(在内核中使用需要经过页表映射)
 	int 	10h
 
-	cmp	ax,	004Fh
+	cmp	ax,	004Fh							;如果VBE执行成功,AH返回00,AL返回4F
 	jnz	Label_SET_SVGA_Mode_VESA_VBE_FAIL
 
 ;=======	init IDT GDT goto protect mode 
@@ -606,7 +606,7 @@ Label_Even_2:
 	ret
 
 ;=======	display num in al
-Label_DispAL:
+Label_DispAL:;显示十六进制数字AL
 	push	ecx
 	push	edx
 	push	edi

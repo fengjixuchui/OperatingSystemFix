@@ -1,4 +1,3 @@
-#include "lib.h"
 #include "printk.h"
 
 void Start_Kernel(void)
@@ -15,8 +14,8 @@ void Start_Kernel(void)
 	Pos.XCharSize = 8;//从左到右横向8
 	Pos.YCharSize = 16;//从上到下纵向16
 
-	Pos.FB_addr = (int *)0xffff800000a00000;//帧缓冲区起始线性地址
-	Pos.FB_length = (Pos.XResolution * Pos.YResolution * 4);//每个像素点需要4字节的值进行控制
+	Pos.FB_addr = (int *)0xffff800000a00000;//帧缓冲区起始线性地址,经过内核执行头定义的页表映射后指向物理地址0xe000 0000(VBE帧缓冲区物理地址)
+	Pos.FB_length = (Pos.XResolution * Pos.YResolution * 4);//每个像素点需要4字节的值进行控制差不多需要5062KB
 
 	for(i = 0 ;i<1440*20;i++)
 	{
@@ -24,7 +23,7 @@ void Start_Kernel(void)
 		*((char *)addr+1)=(char)0x00;
 		*((char *)addr+2)=(char)0xff;
 		*((char *)addr+3)=(char)0x00;	
-		addr +=1;	
+		addr +=1;
 	}
 	for(i = 0 ;i<1440*20;i++)
 	{

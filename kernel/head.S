@@ -24,7 +24,7 @@ _start:
 	movq	$0x7E00,	%rsp
 
 //加载页目录基地址寄存器PDBR=>cr3由于引导加载程序将系统内核加载到物理地址1MB处,而页表PML4的起始地址位于内核程序1000h偏移处,那么页表PML4的物理起始地址应该是1MB + 1000h =101000h处
-	movq	$0x101000,	%rax			;页表PML4物理基地址0x101000
+	movq	$0x101000,	%rax
 	movq	%rax,		%cr3
 	movq	switch_seg(%rip),	%rax
 	pushq	$0x08
@@ -57,9 +57,9 @@ go_to_kernel:
 .org	0x1000
 
 __PML4E:
-	.quad	0x102007					;映射线性地址0
+	.quad	0x102007
 	.fill	255,8,0
-	.quad	0x102007					;映射线性地址0xffff 8000 0010 1000
+	.quad	0x102007
 	.fill	255,8,0
 
 .org	0x2000
